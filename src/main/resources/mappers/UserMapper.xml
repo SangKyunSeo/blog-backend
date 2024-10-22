@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.back.blog.user.mapper.UserMapper">
+    <select id="getUser" resultType="com.back.blog.user.domain.UserDomain">
+        SELECT
+            user_num , user_id, user_pw, user_name, user_auth, user_profile_url, user_profile_name, user_reg_date
+        FROM
+            USER
+        WHERE
+            user_id = #{userId}
+    </select>
+
+    <!-- 로그인 성공 여부 -->
+    <select id="loginCheck" resultType="com.back.blog.user.domain.UserDomain">
+        SELECT
+            user_num, user_id, user_pw, user_name, user_auth, user_profile_url, user_profile_name, user_reg_date
+        FROM
+            USER
+        WHERE
+            user_id = #{userId} AND user_pw = #{userPw}
+    </select>
+
+    <!-- 회원 가입 -->
+    <insert id="addUser">
+        INSERT INTO USER (user_id, user_pw, user_name, user_auth)
+        VALUES (#{userId}, #{userPw}, "테스터", "-1")
+    </insert>
+</mapper>
