@@ -1,5 +1,9 @@
 package com.back.blog.user.service;
 
+import com.back.blog.common.ErrorCode;
+import com.back.blog.exception.BlogException;
+import com.back.blog.exception.LoginException;
+import com.back.blog.exception.TokenException;
 import com.back.blog.jwt.TokenProvider;
 import com.back.blog.user.domain.UserDomain;
 import com.back.blog.user.dto.request.SignInReq;
@@ -44,11 +48,11 @@ public class UserService {
 
         if(userDomain == null){
             // 로그인 실패
-            return new SignInRes();
+            throw new LoginException("존재하지 않는 아이디 입니다.", ErrorCode.LOGIN_EXCEPTION);
         }
 
         if(!passwordEncoder.matches(userPw, userDomain.getUserPw())){ // 비밀번호 불일치
-            return new SignInRes();
+            throw new LoginException("비밀번호가 일치하지 않습니다.", ErrorCode.LOGIN_EXCEPTION);
         }
 
         // 인증 객체 생성
@@ -70,9 +74,11 @@ public class UserService {
                     authentication.getCredentials(),
                     authorities);
             String accessToken = tokenProvider.generateAccessToken(newAuthentication);
+            String refreshToken = tokenProvider.generateRefreshToken(newAuthentication);
 
             SignInRes res = new SignInRes();
             res.setAccessToken(accessToken);
+            res.setRefreshToken(refreshToken);
             res.setRefreshToken("");
             res.setUserAuth(userDomain.getUserAuth());
             res.setUserName(userDomain.getUserName());
@@ -85,7 +91,7 @@ public class UserService {
 
         }catch(Exception e){
             log.error("<< 로그인 실패 >> {}", e.getMessage());
-            return new SignInRes();
+            throw new TokenException("토큰 발급중 오류 발생", ErrorCode.TOKEN_GENERATE_EXCEPTION);
         }
     }
 

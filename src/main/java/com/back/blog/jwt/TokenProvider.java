@@ -57,6 +57,24 @@ public class TokenProvider {
                 .compact();
     }
 
+    // Refresh Token 생성
+    public String generateRefreshToken(Authentication authentication) {
+        log.info("<< Refresh Token 발급 진입 >>");
+
+        String authorities = authentication.getAuthorities().stream().map(GrantedAuthority::getAuthority).collect(Collectors.joining(","));
+
+        long now = (new Date()).getTime();
+        Date refreshTokenExpireTime = new Date(now + refreshTokenExpire);
+
+        return Jwts.builder()
+                .setSubject(authentication.getName())
+                .claim("auth", authorities)
+                .signWith(key, SignatureAlgorithm.HS256)
+                .setExpiration(refreshTokenExpireTime)
+                .setIssuedAt(new Date())
+                .compact();
+    }
+
     // Token에서 유저 정보 추출 후 Authentication 객체 생성
     public Authentication getAuthentication(String token) {
         log.info("<< 토큰 정보 추출 및 객체 생성 진입 >>");
