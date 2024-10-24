@@ -1,6 +1,7 @@
 package com.back.blog.common;
 
 import com.back.blog.exception.LoginException;
+import com.back.blog.exception.SignUpException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -29,4 +30,12 @@ public class ControllerAdvice {
         log.error(e.getMessage());
         return ApiResponse.error(ErrorCode.LOGIN_EXCEPTION);
     }
+
+    @ResponseStatus(HttpStatus.CONFLICT)
+    @ExceptionHandler(SignUpException.class)
+    protected ApiResponse<Object> handleSignUpException(SignUpException e) {
+        log.error(e.getMessage());
+        return ApiResponse.error(e.getErrorCode());
+    }
+
 }

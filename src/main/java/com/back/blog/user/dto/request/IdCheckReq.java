@@ -3,8 +3,6 @@ package com.back.blog.user.dto.request;
 import lombok.Data;
 
 @Data
-public class SignUpReq {
+public class IdCheckReq {
     private String userId;
-    private String userPw;
-    private String userName;
 }

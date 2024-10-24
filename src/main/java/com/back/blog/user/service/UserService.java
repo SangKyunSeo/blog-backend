@@ -3,6 +3,7 @@ package com.back.blog.user.service;
 import com.back.blog.common.ErrorCode;
 import com.back.blog.exception.BlogException;
 import com.back.blog.exception.LoginException;
+import com.back.blog.exception.SignUpException;
 import com.back.blog.exception.TokenException;
 import com.back.blog.jwt.TokenProvider;
 import com.back.blog.user.domain.UserDomain;
@@ -10,6 +11,8 @@ import com.back.blog.user.dto.request.SignInReq;
 import com.back.blog.user.dto.request.SignUpReq;
 import com.back.blog.user.dto.response.SignInRes;
 import com.back.blog.user.mapper.UserMapper;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -38,7 +41,7 @@ public class UserService {
      * @param signInReq
      * @return
      */
-    public SignInRes login(SignInReq signInReq){
+    public SignInRes login(SignInReq signInReq, HttpServletResponse response) {
         log.info("<< 로그인 서비스 진입 >>");
         log.debug("[로그인] 요청 파라미터 {}", signInReq);
 
@@ -79,9 +82,20 @@ public class UserService {
             SignInRes res = new SignInRes();
             res.setAccessToken(accessToken);
             res.setRefreshToken(refreshToken);
-            res.setRefreshToken("");
             res.setUserAuth(userDomain.getUserAuth());
             res.setUserName(userDomain.getUserName());
+
+            // 쿠키 설정
+            Cookie accessCookie = new Cookie("accessToken", accessToken);
+            Cookie refreshCookie = new Cookie("refreshToken", refreshToken);
+            accessCookie.setPath("/");
+            accessCookie.setHttpOnly(true);
+            accessCookie.setMaxAge(60*5);
+            refreshCookie.setPath("/");
+            refreshCookie.setHttpOnly(true);
+            refreshCookie.setMaxAge(60*5);
+            response.addCookie(accessCookie);
+            response.addCookie(refreshCookie);
 
             if(userDomain.getUserProfileUrl() != null){
                 res.setUserProfileUrl(userDomain.getUserProfileUrl());
@@ -105,16 +119,27 @@ public class UserService {
         log.debug("[mapper 결과] {}", userMapper.getUser(signUpReq.getUserId()));
         log.info("[회원가입 아이디 중복 검사 결과] {}", user);
         if(user != null) {
-            log.debug("[회원가입 결과 실패 - 아이디 중복]");
-            return false;
+            throw new SignUpException("회원가입 아이디 중복 오류 발생", ErrorCode.SIGNUP_DUPLICATE_EXCEPTION);
         }
 
         SignUpReq encodedReq = new SignUpReq();
         encodedReq.setUserId(signUpReq.getUserId());
         encodedReq.setUserPw(passwordEncoder.encode(signUpReq.getUserPw()));
+        encodedReq.setUserName(signUpReq.getUserName());
 
         userMapper.addUser(encodedReq);
 
         return true;
+    }
+
+    /**
+     * ID 중복검사
+     * @param userId
+     * @return
+     */
+    public boolean idDupCheck(String userId){
+        UserDomain user = userMapper.getUser(userId);
+        if(user == null) return true;
+        return false;
     }
 }

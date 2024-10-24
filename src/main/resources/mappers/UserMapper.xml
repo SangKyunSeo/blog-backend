@@ -23,6 +23,6 @@
     <!-- 회원 가입 -->
     <insert id="addUser">
         INSERT INTO USER (user_id, user_pw, user_name, user_auth)
-        VALUES (#{userId}, #{userPw}, "테스터", "-1")
+        VALUES (#{userId}, #{userPw}, #{userName}, "1")
     </insert>
 </mapper>
