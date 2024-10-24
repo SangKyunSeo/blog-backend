@@ -7,6 +7,7 @@ import com.back.blog.user.dto.request.SignInReq;
 import com.back.blog.user.dto.request.SignUpReq;
 import com.back.blog.user.dto.response.SignInRes;
 import com.back.blog.user.service.UserService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
@@ -47,6 +48,20 @@ public class UserController {
     public ApiResponse<Boolean> idDupCheck(@RequestBody IdCheckReq req){
         log.info("<< ID 중복검사 컨트롤러 진입 >> {}",req);
         return ApiResponse.success(userService.idDupCheck(req.getUserId()));
+    }
+
+    // 토큰 재발급 테스트
+    @PostMapping("/test")
+    public ApiResponse<Boolean> test(){
+        log.info(">? 토큰 테스트용 컨트롤러 진입 ");
+        return ApiResponse.success(true);
+    }
+
+    // 토큰 재발급
+    @PostMapping("/reIssue")
+    public ApiResponse<Boolean> reIssue(HttpServletRequest request, HttpServletResponse response){
+
+
     }
 
 

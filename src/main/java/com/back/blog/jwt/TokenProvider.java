@@ -111,4 +111,15 @@ public class TokenProvider {
             throw new JwtException("ILLEGAL-ARGUMENT_ERROR");
         }
     }
+
+    // Claims 정보 추출
+    private Claims getAllClaims(String token){
+        Key secretKey = Keys.hmacShaKeyFor(key.getEncoded());
+        return Jwts.parserBuilder().setSigningKey(secretKey).build().parseClaimsJws(token).getBody();
+    }
+
+    // Token으로 부터 정보 추출
+    public String getUserIdFromToken(String token) {
+       return "";
+    }
 }

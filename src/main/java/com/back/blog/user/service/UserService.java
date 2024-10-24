@@ -12,6 +12,7 @@ import com.back.blog.user.dto.request.SignUpReq;
 import com.back.blog.user.dto.response.SignInRes;
 import com.back.blog.user.mapper.UserMapper;
 import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -58,6 +59,58 @@ public class UserService {
             throw new LoginException("비밀번호가 일치하지 않습니다.", ErrorCode.LOGIN_EXCEPTION);
         }
 
+        // 인증 객체 생성
+        UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(userId, userPw);
+
+        try{
+            Authentication authentication = authenticationManagerBuilder.getObject()
+                    .authenticate(authenticationToken);
+
+            // 권한 조회
+            String role = userDomain.getUserAuth() == 0 ? "ROLE_ADMIN" : "ROLE_USER";
+
+            List<GrantedAuthority> authorities = Collections.singletonList(new SimpleGrantedAuthority(role));
+
+
+            // 인증 객체 재생성 (권한 포함)
+            Authentication newAuthentication = new UsernamePasswordAuthenticationToken(
+                    authentication.getPrincipal(),
+                    authentication.getCredentials(),
+                    authorities);
+            String accessToken = tokenProvider.generateAccessToken(newAuthentication);
+            String refreshToken = tokenProvider.generateRefreshToken(newAuthentication);
+
+            SignInRes res = new SignInRes();
+            res.setAccessToken(accessToken);
+            res.setRefreshToken(refreshToken);
+            res.setUserAuth(userDomain.getUserAuth());
+            res.setUserName(userDomain.getUserName());
+
+            // 쿠키 설정
+            Cookie accessCookie = new Cookie("accessToken", accessToken);
+            Cookie refreshCookie = new Cookie("refreshToken", refreshToken);
+            accessCookie.setPath("/");
+            accessCookie.setHttpOnly(true);
+            accessCookie.setMaxAge(60*5);
+            refreshCookie.setPath("/");
+            refreshCookie.setHttpOnly(true);
+            refreshCookie.setMaxAge(60*5);
+            response.addCookie(accessCookie);
+            response.addCookie(refreshCookie);
+
+            if(userDomain.getUserProfileUrl() != null){
+                res.setUserProfileUrl(userDomain.getUserProfileUrl());
+                res.setUserProfileUrl(userDomain.getUserProfileName());
+            }
+            return res;
+
+        }catch(Exception e){
+            log.error("<< 로그인 실패 >> {}", e.getMessage());
+            throw new TokenException("토큰 발급중 오류 발생", ErrorCode.TOKEN_GENERATE_EXCEPTION);
+        }
+    }
+
+    public boolean reIssueToken(HttpServletRequest request, HttpServletResponse response) {
         // 인증 객체 생성
         UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(userId, userPw);
 
