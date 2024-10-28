@@ -1,5 +1,7 @@
 package com.back.blog.jwt;
 
+import com.back.blog.common.ErrorCode;
+import com.back.blog.exception.TokenException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
@@ -14,6 +16,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Enumeration;
 
 @RequiredArgsConstructor
 @Component
@@ -26,14 +29,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         String jwt = resolveToken(request);
         String requestURI = request.getRequestURI();
-        if(jwt != null && tokenProvider.validateToken(jwt)){
-            if(!requestURI.equals("/api/user/reIssue")){
+        try{
+            if(jwt != null && tokenProvider.validateToken(jwt)){
                 Authentication authentication = tokenProvider.getAuthentication(jwt);
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }
+            filterChain.doFilter(request, response);
+        }catch(TokenException e){
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED); // 상태 코드 401
+            response.setContentType("application/json;charset=UTF-8");
+            response.getWriter().write(
+                    "{\"data\": null, \"code\": \"" + ErrorCode.TOKEN_EXPIRE_EXCEPTION + "\", \"message\": \"토큰이 만료되었습니다.\"}"
+            );
         }
-
-        filterChain.doFilter(request, response);
     }
 
     private String resolveToken(HttpServletRequest request) {
@@ -47,8 +55,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         Cookie[] cookies = request.getCookies();
 
         log.debug("<< Request URI >> {}", requestURI);
+        Enumeration<String> headerNames = request.getHeaderNames();
+        StringBuilder headers = new StringBuilder("Request Headers:\n");
+        while (headerNames.hasMoreElements()) {
+            String headerName = headerNames.nextElement();
+            String headerValue = request.getHeader(headerName);
+            headers.append(headerName).append(": ").append(headerValue).append("\n");
+        }
+        log.debug("<< Request Headers >> {}", headers);
 
         if(cookies == null){
+            log.info("[Cookie 없음]");
             return null;
         }
 
@@ -73,7 +90,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 }
             }
         }
-
         return null;
     }
 }

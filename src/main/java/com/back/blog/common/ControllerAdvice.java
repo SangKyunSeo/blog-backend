@@ -2,6 +2,7 @@ package com.back.blog.common;
 
 import com.back.blog.exception.LoginException;
 import com.back.blog.exception.SignUpException;
+import com.back.blog.exception.TokenException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -34,6 +35,13 @@ public class ControllerAdvice {
     @ResponseStatus(HttpStatus.CONFLICT)
     @ExceptionHandler(SignUpException.class)
     protected ApiResponse<Object> handleSignUpException(SignUpException e) {
+        log.error(e.getMessage());
+        return ApiResponse.error(e.getErrorCode());
+    }
+
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    @ExceptionHandler(TokenException.class)
+    protected ApiResponse<Object> handleTokenException(TokenException e) {
         log.error(e.getMessage());
         return ApiResponse.error(e.getErrorCode());
     }

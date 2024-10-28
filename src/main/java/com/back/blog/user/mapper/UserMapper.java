@@ -21,4 +21,11 @@ public interface UserMapper {
      * @param req
      */
     void addUser(SignUpReq req);
+
+    /**
+     * 토큰 재발급을 위한 사용자 패스워드 조회
+     * @param userId
+     * @return
+     */
+    String getUserPassword(String userId);
 }

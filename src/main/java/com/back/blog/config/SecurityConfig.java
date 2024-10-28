@@ -1,9 +1,7 @@
 package com.back.blog.config;
 
-import com.back.blog.jwt.JwtAccessDeniedHandler;
 import com.back.blog.jwt.JwtAuthenticationEntryPoint;
 import com.back.blog.jwt.JwtAuthenticationFilter;
-import com.back.blog.security.service.CustomUserDetailService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
 import org.springframework.context.annotation.Bean;
@@ -24,7 +22,6 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig  {
 
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
-    private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Bean
@@ -43,22 +40,20 @@ public class SecurityConfig  {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable);
 
-        http.exceptionHandling(authenticationManager -> {
-            authenticationManager.authenticationEntryPoint(jwtAuthenticationEntryPoint)
-                    .accessDeniedHandler(jwtAccessDeniedHandler);
-        });
-
         http.sessionManagement(sessionManager -> {
             sessionManager.sessionCreationPolicy(SessionCreationPolicy.STATELESS);
         });
 
         http.authorizeHttpRequests(httpRequest -> {
             httpRequest
-                    .requestMatchers("/authenticate", "/", "/api/user/signIn", "/api/user/signUp", "/api/user/idDup/check", "/api/board/main/list").permitAll().anyRequest().authenticated();
+                    .requestMatchers("/authenticate", "/",
+                            "/api/user/signIn", "/api/user/signUp", "/api/user/idDup/check", "/api/board/main/list",
+                            "/api/category/list"
+                    )
+                    .permitAll().anyRequest().authenticated();
         });
 
         http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
-
 
         return http.build();
 

@@ -1,5 +1,7 @@
 package com.back.blog.jwt;
 
+import com.back.blog.common.ErrorCode;
+import com.back.blog.exception.TokenException;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
@@ -92,23 +94,23 @@ public class TokenProvider {
     }
 
     // Token 유효성 검사
-    public Boolean validateToken(String token){
+    public Boolean validateToken(String token) throws TokenException{
         log.info("<< 토큰 검증 메서드 진입 >>");
         try{
             Jws<Claims> claims = Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
             return !claims.getBody().getExpiration().before(new Date());
         }catch(SignatureException e){
             log.info("SignatureException (서명 오류 토큰) = " + e.getMessage());
-            throw new JwtException("SIGNATURE_ERROR");
+            throw new TokenException("토큰의 서명 오류가 발생했습니다.", ErrorCode.TOKEN_SIGNATURE_EXCEPTION);
         }catch(MalformedJwtException e){
             log.info("MalformedJwtException (손상된 토큰) = " + e.getMessage());
-            throw new JwtException("MALFORMED_ERROR");
+            throw new TokenException("토큰이 손상되었습니다.", ErrorCode.TOKEN_MALFORMED_EXCEPTION);
         }catch(ExpiredJwtException e){
             log.info("ExpiredJwtException (만료된 토큰) = " + e.getMessage());
-            throw new JwtException("EXPIRED_ERROR");
+            throw new TokenException("토큰이 만료되었습니다.", ErrorCode.TOKEN_EXPIRE_EXCEPTION);
         }catch(IllegalArgumentException e){
             log.info("IllegalArgumentException (적절하지 않은 파라미터 에러) = " + e.getMessage());
-            throw new JwtException("ILLEGAL-ARGUMENT_ERROR");
+            throw new TokenException("파라미터 에러가 발생했습니다.", ErrorCode.BAD_REQUEST_EXCEPTION);
         }
     }
 
@@ -120,6 +122,14 @@ public class TokenProvider {
 
     // Token으로 부터 정보 추출
     public String getUserIdFromToken(String token) {
-       return "";
+       try{
+           Claims claims = getAllClaims(token);
+           String userId = String.valueOf(claims.getSubject());
+           return userId;
+       }catch(ExpiredJwtException e){
+           Claims claims = getAllClaims(token);
+           String exUserId = String.valueOf(claims.getSubject());
+           return exUserId;
+       }
     }
 }

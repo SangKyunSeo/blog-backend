@@ -91,12 +91,17 @@ public class UserService {
             Cookie refreshCookie = new Cookie("refreshToken", refreshToken);
             accessCookie.setPath("/");
             accessCookie.setHttpOnly(true);
-            accessCookie.setMaxAge(60*5);
+            accessCookie.setMaxAge(60*60);
+            accessCookie.setSecure(false);
+
             refreshCookie.setPath("/");
             refreshCookie.setHttpOnly(true);
-            refreshCookie.setMaxAge(60*5);
+            refreshCookie.setMaxAge(60*60);
+            refreshCookie.setSecure(false);
+
             response.addCookie(accessCookie);
             response.addCookie(refreshCookie);
+
 
             if(userDomain.getUserProfileUrl() != null){
                 res.setUserProfileUrl(userDomain.getUserProfileUrl());
@@ -104,49 +109,65 @@ public class UserService {
             }
             return res;
 
-        }catch(Exception e){
+        }catch(TokenException e){
             log.error("<< 로그인 실패 >> {}", e.getMessage());
-            throw new TokenException("토큰 발급중 오류 발생", ErrorCode.TOKEN_GENERATE_EXCEPTION);
+            throw new TokenException(e.getMessage(), e.getErrorCode());
         }
     }
 
+    /**
+     * 토큰 재발급 서비스
+     * @param request
+     * @param response
+     * @return
+     */
     public boolean reIssueToken(HttpServletRequest request, HttpServletResponse response) {
-        // 인증 객체 생성
-        UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(userId, userPw);
+
+        log.info("<< 재발급 서비스 진입 >>");
+
+        String refreshToken = "";
+        for (Cookie cookie : request.getCookies()) {
+            if ("refreshToken".equals(cookie.getName())) {
+                refreshToken = cookie.getValue();
+            }
+        }
+
+        log.debug(">> 재발급을 위한 refresh token {}", refreshToken);
+
+        String userId = tokenProvider.getUserIdFromToken(refreshToken);
+        UserDomain userDomain = userMapper.getUser(userId);
+
+        // 권한 조회
+        String role = userDomain.getUserAuth() == 0 ? "ROLE_ADMIN" : "ROLE_USER";
+        List<GrantedAuthority> authorities = Collections.singletonList(new SimpleGrantedAuthority(role));
 
         try{
-            Authentication authentication = authenticationManagerBuilder.getObject()
-                    .authenticate(authenticationToken);
+            Authentication authentication = new UsernamePasswordAuthenticationToken(userId, null, authorities);
+            String newAccessToken = tokenProvider.generateAccessToken(authentication);
+            String newRefreshToken = tokenProvider.generateRefreshToken(authentication);
 
-            // 권한 조회
-            String role = userDomain.getUserAuth() == 0 ? "ROLE_ADMIN" : "ROLE_USER";
-
-            List<GrantedAuthority> authorities = Collections.singletonList(new SimpleGrantedAuthority(role));
-
-
-            // 인증 객체 재생성 (권한 포함)
-            Authentication newAuthentication = new UsernamePasswordAuthenticationToken(
-                    authentication.getPrincipal(),
-                    authentication.getCredentials(),
-                    authorities);
-            String accessToken = tokenProvider.generateAccessToken(newAuthentication);
-            String refreshToken = tokenProvider.generateRefreshToken(newAuthentication);
+            log.debug(">> 재생성된 accessToken : {}", newAccessToken);
+            log.debug(">> 재생성된 refreshToken : {}", newRefreshToken);
 
             SignInRes res = new SignInRes();
-            res.setAccessToken(accessToken);
-            res.setRefreshToken(refreshToken);
+            res.setAccessToken(newAccessToken);
+            res.setRefreshToken(newRefreshToken);
             res.setUserAuth(userDomain.getUserAuth());
             res.setUserName(userDomain.getUserName());
 
             // 쿠키 설정
-            Cookie accessCookie = new Cookie("accessToken", accessToken);
-            Cookie refreshCookie = new Cookie("refreshToken", refreshToken);
+            Cookie accessCookie = new Cookie("accessToken", newAccessToken);
+            Cookie refreshCookie = new Cookie("refreshToken", newRefreshToken);
             accessCookie.setPath("/");
             accessCookie.setHttpOnly(true);
             accessCookie.setMaxAge(60*5);
+            accessCookie.setSecure(false);
+
             refreshCookie.setPath("/");
             refreshCookie.setHttpOnly(true);
             refreshCookie.setMaxAge(60*5);
+            refreshCookie.setSecure(false);
+
             response.addCookie(accessCookie);
             response.addCookie(refreshCookie);
 
@@ -154,7 +175,7 @@ public class UserService {
                 res.setUserProfileUrl(userDomain.getUserProfileUrl());
                 res.setUserProfileUrl(userDomain.getUserProfileName());
             }
-            return res;
+            return true;
 
         }catch(Exception e){
             log.error("<< 로그인 실패 >> {}", e.getMessage());

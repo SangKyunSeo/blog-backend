@@ -25,4 +25,9 @@
         INSERT INTO USER (user_id, user_pw, user_name, user_auth)
         VALUES (#{userId}, #{userPw}, #{userName}, "1")
     </insert>
+
+    <!-- 사용자 패스워드 조회 -->
+    <select id="getUserPassword" resultType="string">
+        SELECT user_pw FROM USER WHERE user_id = #{user_id}
+    </select>
 </mapper>

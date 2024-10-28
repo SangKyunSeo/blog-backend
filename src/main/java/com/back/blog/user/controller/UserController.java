@@ -60,11 +60,8 @@ public class UserController {
     // 토큰 재발급
     @PostMapping("/reIssue")
     public ApiResponse<Boolean> reIssue(HttpServletRequest request, HttpServletResponse response){
-
-
+        log.info("<< 재발급 컨트롤러 진입 >>");
+        return ApiResponse.success(userService.reIssueToken(request,response));
     }
-
-
-
 
 }
